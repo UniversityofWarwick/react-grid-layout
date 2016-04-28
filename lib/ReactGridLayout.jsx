@@ -102,6 +102,9 @@ export default class ReactGridLayout extends React.Component {
     // Calls when resize is complete.
     onResizeStop: PropTypes.func,
 
+    // Called to get the dragDelay for a GridItem
+    getDragDelayForItem: PropTypes.func,
+
     //
     // Other validations
     //
@@ -133,6 +136,7 @@ export default class ReactGridLayout extends React.Component {
     isResizable: true,
     useCSSTransforms: true,
     verticalCompact: true,
+    getDragDelayForItem: () => 0,
     onLayoutChange: noop,
     onDragStart: noop,
     onDrag: noop,
@@ -395,6 +399,8 @@ export default class ReactGridLayout extends React.Component {
         maxH={l.maxH}
         maxW={l.maxW}
         static={l.static}
+
+        dragDelay={this.props.getDragDelayForItem(l)}
         >
         {child}
       </GridItem>

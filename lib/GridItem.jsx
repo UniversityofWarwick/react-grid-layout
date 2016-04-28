@@ -9,7 +9,10 @@ import type {CorePosition, Position} from './utils';
 type State = {
   resizing: ?{width: number, height: number},
   dragging: ?{top: number, left: number},
-  className: string
+  className: string,
+  totalDelta: ?{x: number, y: number},
+  timeout: ?number,
+  dragStarted: boolean
 };
 
 /**
@@ -81,7 +84,9 @@ export default class GridItem extends React.Component {
     // Selector for draggable handle
     handle: PropTypes.string,
     // Selector for draggable cancel (see react-draggable)
-    cancel: PropTypes.string
+    cancel: PropTypes.string,
+
+    dragDelay: PropTypes.number
   };
 
   static defaultProps = {
@@ -90,13 +95,16 @@ export default class GridItem extends React.Component {
     minH: 1,
     minW: 1,
     maxH: Infinity,
-    maxW: Infinity
+    maxW: Infinity,
+    dragDelay: 0
   };
 
   state: State = {
     resizing: null,
     dragging: null,
-    className: ''
+    className: '',
+    dragStarted: false,
+    totalDelta: null
   };
 
   // Helper for generating column width
@@ -285,6 +293,17 @@ export default class GridItem extends React.Component {
 
       let newPosition: {top: number, left: number} = {top: 0, left: 0};
 
+      const callHandlerProp = (handlerName) => {
+        const {x, y} = this.calcXY(newPosition.top, newPosition.left);
+
+        this.props[handlerName](this.props.i, x, y, {e, node, newPosition});
+      };
+
+      const start = () => {
+        this.setState({dragStarted: true, timeout: null});
+        callHandlerProp('onDragStart');
+      };
+
       // Get new XY
       switch (handlerName) {
         case 'onDragStart':
@@ -293,27 +312,59 @@ export default class GridItem extends React.Component {
           const clientRect = node.getBoundingClientRect();
           newPosition.top = clientRect.top - parentRect.top;
           newPosition.left = clientRect.left - parentRect.left;
-          this.setState({dragging: newPosition});
-          break;
+          this.setState({dragging: newPosition, totalDelta: {x: 0, y: 0}});
+          if (this.props.dragDelay === 0 || e.type === 'mousedown') {
+            start();
+          } else {
+            const timeout = setTimeout(start, this.props.dragDelay);
+            this.setState({timeout});
+          }
+
+          // Do not call the onDragStart handler here
+          return;
         case 'onDrag':
           if (!this.state.dragging) throw new Error('onDrag called before onDragStart.');
           newPosition.left = this.state.dragging.left + position.deltaX;
           newPosition.top = this.state.dragging.top + position.deltaY;
+
+          const totalDelta = this.state.totalDelta || {x: 0, y: 0};
+          totalDelta.x += position.deltaX;
+          totalDelta.y += position.deltaY;
+          this.setState({totalDelta});
+
+          if (!this.state.dragStarted) {
+            if (Math.max(Math.abs(totalDelta.x), Math.abs(totalDelta.y)) > 10) {
+              // Looks like a scroll instead of a drag, cancel
+              if (this.state.timeout !== null) {
+                clearTimeout(this.state.timeout);
+              }
+              this.setState({timeout: null});
+              return false;
+            }
+
+            // Do not move yet
+            return;
+          }
+
+          // We are dragging, prevent default scrolling behaviour
+          e.preventDefault();
+
           this.setState({dragging: newPosition});
           break;
         case 'onDragStop':
           if (!this.state.dragging) throw new Error('onDragEnd called before onDragStart.');
           newPosition.left = this.state.dragging.left;
           newPosition.top = this.state.dragging.top;
-          this.setState({dragging: null});
+          if (this.state.timeout !== null) {
+            clearTimeout(this.state.timeout);
+          }
+          this.setState({dragging: null, timeout: null, dragStarted: false, totalDelta: null});
           break;
         default:
           throw new Error('onDragHandler called with unrecognized handlerName: ' + handlerName);
       }
 
-      const {x, y} = this.calcXY(newPosition.top, newPosition.left);
-
-      this.props[handlerName](this.props.i, x, y, {e, node, newPosition});
+      callHandlerProp(handlerName);
     };
   }
 
