@@ -8,6 +8,10 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
+var _reactDom = require('react-dom');
+
+var _reactDom2 = _interopRequireDefault(_reactDom);
+
 var _reactDraggable = require('react-draggable');
 
 var _reactResizable = require('react-resizable');
@@ -322,7 +326,7 @@ var GridItem = function (_React$Component) {
           newPosition.top = clientRect.top - parentRect.top;
           newPosition.left = clientRect.left - parentRect.left;
           _this2.setState({ dragging: newPosition, totalDelta: { x: 0, y: 0 } });
-          if (_this2.props.dragDelay === 0 || e.type === 'mousedown') {
+          if (_this2.props.dragDelay === 0) {
             start();
           } else {
             var _timeout = setTimeout(start, _this2.props.dragDelay);
@@ -343,12 +347,17 @@ var GridItem = function (_React$Component) {
 
           if (!_this2.state.dragStarted) {
             if (Math.max(Math.abs(totalDelta.x), Math.abs(totalDelta.y)) > 10) {
-              // Looks like a scroll instead of a drag, cancel
               if (_this2.state.timeout !== null) {
                 clearTimeout(_this2.state.timeout);
+                _this2.setState({ timeout: null });
               }
-              _this2.setState({ timeout: null });
-              return false;
+              if (e.type === 'mousemove') {
+                // Not a click, start dragging
+                start();
+              } else {
+                // Looks like a scroll instead of a drag, cancel
+                return false;
+              }
             }
 
             // Do not move yet
@@ -364,6 +373,9 @@ var GridItem = function (_React$Component) {
           if (!_this2.state.dragging) throw new Error('onDragEnd called before onDragStart.');
           newPosition.left = _this2.state.dragging.left;
           newPosition.top = _this2.state.dragging.top;
+          if (_this2.state.dragStarted === false) {
+            _reactDom2.default.findDOMNode(_this2).click();
+          }
           if (_this2.state.timeout !== null) {
             clearTimeout(_this2.state.timeout);
           }

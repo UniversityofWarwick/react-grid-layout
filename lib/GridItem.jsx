@@ -1,5 +1,6 @@
 // @flow
 import React, {PropTypes} from 'react';
+import ReactDOM from 'react-dom';
 import {DraggableCore} from 'react-draggable';
 import {Resizable} from 'react-resizable';
 import {perc, setTopLeft, setTransform} from './utils';
@@ -313,7 +314,7 @@ export default class GridItem extends React.Component {
           newPosition.top = clientRect.top - parentRect.top;
           newPosition.left = clientRect.left - parentRect.left;
           this.setState({dragging: newPosition, totalDelta: {x: 0, y: 0}});
-          if (this.props.dragDelay === 0 || e.type === 'mousedown') {
+          if (this.props.dragDelay === 0) {
             start();
           } else {
             const timeout = setTimeout(start, this.props.dragDelay);
@@ -334,12 +335,17 @@ export default class GridItem extends React.Component {
 
           if (!this.state.dragStarted) {
             if (Math.max(Math.abs(totalDelta.x), Math.abs(totalDelta.y)) > 10) {
-              // Looks like a scroll instead of a drag, cancel
               if (this.state.timeout !== null) {
                 clearTimeout(this.state.timeout);
+                this.setState({timeout: null});
               }
-              this.setState({timeout: null});
-              return false;
+              if (e.type === 'mousemove') {
+                // Not a click, start dragging
+                start();
+              } else {
+                // Looks like a scroll instead of a drag, cancel
+                return false;
+              }
             }
 
             // Do not move yet
@@ -355,6 +361,9 @@ export default class GridItem extends React.Component {
           if (!this.state.dragging) throw new Error('onDragEnd called before onDragStart.');
           newPosition.left = this.state.dragging.left;
           newPosition.top = this.state.dragging.top;
+          if (this.state.dragStarted === false) {
+            ReactDOM.findDOMNode(this).click();
+          }
           if (this.state.timeout !== null) {
             clearTimeout(this.state.timeout);
           }
