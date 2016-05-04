@@ -324,7 +324,10 @@ export default class GridItem extends React.Component {
           // Do not call the onDragStart handler here
           return;
         case 'onDrag':
-          if (!this.state.dragging) throw new Error('onDrag called before onDragStart.');
+          if (!this.state.dragging) {
+            // throw new Error('onDrag called before onDragStart.');
+            return;
+          }
           newPosition.left = this.state.dragging.left + position.deltaX;
           newPosition.top = this.state.dragging.top + position.deltaY;
 
@@ -358,7 +361,10 @@ export default class GridItem extends React.Component {
           this.setState({dragging: newPosition});
           break;
         case 'onDragStop':
-          if (!this.state.dragging) throw new Error('onDragEnd called before onDragStart.');
+          if (!this.state.dragging) {
+            // throw new Error('onDragEnd called before onDragStart.');
+            return;
+          }
           newPosition.left = this.state.dragging.left;
           newPosition.top = this.state.dragging.top;
           if (this.state.dragStarted === false) {

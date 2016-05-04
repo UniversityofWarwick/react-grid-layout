@@ -336,7 +336,10 @@ var GridItem = function (_React$Component) {
           // Do not call the onDragStart handler here
           return;
         case 'onDrag':
-          if (!_this2.state.dragging) throw new Error('onDrag called before onDragStart.');
+          if (!_this2.state.dragging) {
+            // throw new Error('onDrag called before onDragStart.');
+            return;
+          }
           newPosition.left = _this2.state.dragging.left + position.deltaX;
           newPosition.top = _this2.state.dragging.top + position.deltaY;
 
@@ -370,7 +373,10 @@ var GridItem = function (_React$Component) {
           _this2.setState({ dragging: newPosition });
           break;
         case 'onDragStop':
-          if (!_this2.state.dragging) throw new Error('onDragEnd called before onDragStart.');
+          if (!_this2.state.dragging) {
+            // throw new Error('onDragEnd called before onDragStart.');
+            return;
+          }
           newPosition.left = _this2.state.dragging.left;
           newPosition.top = _this2.state.dragging.top;
           if (_this2.state.dragStarted === false) {
