@@ -379,13 +379,22 @@ var GridItem = function (_React$Component) {
           }
           newPosition.left = _this2.state.dragging.left;
           newPosition.top = _this2.state.dragging.top;
-          if (_this2.state.dragStarted === false) {
-            _reactDom2.default.findDOMNode(_this2).click();
-          }
-          if (_this2.state.timeout !== null) {
-            clearTimeout(_this2.state.timeout);
-          }
+          var _state = _this2.state;
+          var dragStarted = _state.dragStarted;
+          var timeout = _state.timeout;
+
           _this2.setState({ dragging: null, timeout: null, dragStarted: false, totalDelta: null });
+          if (dragStarted === false) {
+            (function () {
+              var node = _reactDom2.default.findDOMNode(_this2);
+              setTimeout(function () {
+                return node.click();
+              }, 1);
+            })();
+          }
+          if (timeout !== null) {
+            clearTimeout(timeout);
+          }
           break;
         default:
           throw new Error('onDragHandler called with unrecognized handlerName: ' + handlerName);

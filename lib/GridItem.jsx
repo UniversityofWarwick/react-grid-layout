@@ -367,13 +367,15 @@ export default class GridItem extends React.Component {
           }
           newPosition.left = this.state.dragging.left;
           newPosition.top = this.state.dragging.top;
-          if (this.state.dragStarted === false) {
-            ReactDOM.findDOMNode(this).click();
-          }
-          if (this.state.timeout !== null) {
-            clearTimeout(this.state.timeout);
-          }
+          const { dragStarted, timeout } = this.state;
           this.setState({dragging: null, timeout: null, dragStarted: false, totalDelta: null});
+          if (dragStarted === false) {
+            const node = ReactDOM.findDOMNode(this);
+            setTimeout(() => node.click(), 1);
+          }
+          if (timeout !== null) {
+            clearTimeout(timeout);
+          }
           break;
         default:
           throw new Error('onDragHandler called with unrecognized handlerName: ' + handlerName);
