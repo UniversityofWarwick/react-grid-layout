@@ -1,5 +1,126 @@
 # Changelog
 
+0.13.9 (Oct 13, 2016)
+-----
+
+#### Fixes:
+
+- Fixed sorting of layout items, which could be different in IE if two items have the same x & y coordinate.
+  - See [#369](https://github.com/STRML/react-grid-layout/issues/369).
+
+0.13.8 (Oct 13, 2016)
+-----
+
+#### Fixes:
+
+- Fixed breakage introduced in `0.13.7` when items are added without a layout or `data-grid` property.
+  - See [#368](https://github.com/STRML/react-grid-layout/issues/368).
+
+0.13.7 (Oct 3, 2016)
+-----
+
+#### Fixes:
+
+- Fixed an error during layout sync if children was a keyed fragment or had nested arrays.
+- Fixed `onLayoutChange` being called when layout didn't change.
+- Fixed some issues with input layout items being modified in-place rather than cloned.
+- Minor typos.
+
+0.13.6 (Sep 26, 2016)
+-----
+
+#### Fixes:
+
+- Fixed missing HTMLElement in `onResize*` callbacks.
+
+0.13.5 (Sep 9, 2016)
+-----
+
+#### Fixes:
+
+- Fixed a few Flow typing errors in `WidthProvider`.
+
+0.13.4 (Sep 9, 2016)
+-----
+
+#### Fixes:
+
+- Fixed potential call to `ReactDOM.findDOMNode(this)` after unmount of `WidthProvider`.
+- Fixed an issue where layout items using `data-grid` could rearrange on mount depending on how they were ordered.
+  - See [#342](https://github.com/STRML/react-grid-layout/pull/342) for reference.
+
+0.13.3 (Aug 31, 2016)
+-----
+
+#### Fixes:
+
+- Fixed `lodash.isequal` import, which was ruined by case-insensitive HFS+ *shakes fist*
+
+0.13.2 (Aug 31, 2016)
+-----
+
+#### Fixes:
+
+- Diffing children in order to regenerate the layout now diffs the `key` props and their order.
+  - This will catch more changes, such as sorting, addition, and removal.
+- Only pass `className` and `style` to WidthProvider. Other props were not intended to be supported.
+  - I'm aware this could be a breaking change if you were relying on this bad behavior. If so, please
+    use your own `WidthProvider`-style HOC.
+- `babel-plugin-transform-flow-comments` had limited support for defining types like transpiled classes.
+  - This has been updated to instead copy source to `.js.flow` files, which preserves all type information.
+
+0.13.1 (Aug 16, 2016)
+-----
+
+#### Fixes:
+
+- Fix remaining `propTypes` warnings.
+
+0.13.0 (Aug 3, 2016)
+-----
+
+#### Changed:
+
+- Due to a change in React 15.2, passing the `_grid` property on DOM children generates an error.
+  To compensate, we now error on the same and suggest using `data-grid` instead. Simply change any use of
+  `_grid` to `data-grid`, or add your properties to the layout.
+
+#### Fixes:
+
+- Fix React 15.3 warning re: propTypes.
+
+0.12.7 (Jun 29, 2016)
+-----
+
+- Prevent extraenous rerenders in `<ResponsiveReactGridLayout>` by using deep equality on layouts.
+
+0.12.6 (Jun 5, 2016)
+-----
+
+- Fix blindingly obvious bug where mounted isn't set to true. Smack forehead.
+
+0.12.5 (Jun 3, 2016)
+-----
+
+- Fixes for server rendering checksum failures.
+
+0.12.4 (May 22, 2016)
+-----
+
+- Update to React-Draggable v2. Fixes: #241, #239, #24
+  - v2 contains a number of bugfixes & enhancements for touchscreens, multitouch, and scrolling containers.
+
+0.12.3 (May 3, 2016)
+-----
+
+- Bugfix: Rendering with new `breakpoints`/`cols` does not refresh the layout.
+  Fixes #208 - thanks @damienleroux
+
+0.12.2 (May 1, 2016)
+------
+
+- Bugfix: Fix warning about undefined `useCSSTransforms` when server-rendering.
+
 0.12.1 (Apr 19, 2016)
 ------
 

@@ -1,8 +1,12 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _react = require('react');
 
@@ -26,16 +30,10 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-// Types
-/*:: import type {ResizeEvent, DragEvent, Layout, LayoutItem} from './utils';*/
-/*:: type State = {
-  activeDrag: ?LayoutItem,
-  layout: Layout,
-  oldDragItem: ?LayoutItem,
-  oldResizeItem: ?LayoutItem
-};*/
-
 var noop = function noop() {};
+
+// Types
+
 // End Types
 
 /**
@@ -46,11 +44,10 @@ var ReactGridLayout = function (_React$Component) {
   _inherits(ReactGridLayout, _React$Component);
 
   // TODO publish internal ReactClass displayName transform
-
-  function ReactGridLayout(props /*: Object*/, context /*: ?Object*/) /*: void*/ {
+  function ReactGridLayout(props, context) {
     _classCallCheck(this, ReactGridLayout);
 
-    var _this = _possibleConstructorReturn(this, _React$Component.call(this, props, context));
+    var _this = _possibleConstructorReturn(this, (ReactGridLayout.__proto__ || Object.getPrototypeOf(ReactGridLayout)).call(this, props, context));
 
     _initialiseProps.call(_this);
 
@@ -58,327 +55,370 @@ var ReactGridLayout = function (_React$Component) {
     return _this;
   }
 
-  ReactGridLayout.prototype.componentDidMount = function componentDidMount() {
-    // Call back with layout on mount. This should be done after correcting the layout width
-    // to ensure we don't rerender with the wrong width.
-    this.props.onLayoutChange(this.state.layout);
-  };
-
-  ReactGridLayout.prototype.componentWillReceiveProps = function componentWillReceiveProps(nextProps /*: Object*/) {
-    var newLayoutBase = void 0;
-    // Allow parent to set layout directly.
-    if (!(0, _lodash2.default)(nextProps.layout, this.props.layout)) {
-      newLayoutBase = nextProps.layout;
+  _createClass(ReactGridLayout, [{
+    key: 'componentDidMount',
+    value: function componentDidMount() {
+      this.setState({ mounted: true });
+      // Possibly call back with layout on mount. This should be done after correcting the layout width
+      // to ensure we don't rerender with the wrong width.
+      this.onLayoutMaybeChanged(this.state.layout, this.props.layout);
     }
-
-    // If children change, also regenerate the layout. Use our state
-    // as the base in case because it may be more up to date than
-    // what is in props.
-    else if (nextProps.children.length !== this.props.children.length) {
-        newLayoutBase = this.state.layout;
+  }, {
+    key: 'componentWillReceiveProps',
+    value: function componentWillReceiveProps(nextProps) {
+      var newLayoutBase = void 0;
+      // Allow parent to set layout directly.
+      if (!(0, _lodash2.default)(nextProps.layout, this.props.layout)) {
+        newLayoutBase = nextProps.layout;
       }
 
-    // We need to regenerate the layout.
-    if (newLayoutBase) {
-      var newLayout = (0, _utils.synchronizeLayoutWithChildren)(newLayoutBase, nextProps.children, nextProps.cols, nextProps.verticalCompact);
-      this.setState({ layout: newLayout });
-      this.props.onLayoutChange(newLayout);
+      // If children change, also regenerate the layout. Use our state
+      // as the base in case because it may be more up to date than
+      // what is in props.
+      else if (!(0, _utils.childrenEqual)(this.props.children, nextProps.children)) {
+          newLayoutBase = this.state.layout;
+        }
+
+      // We need to regenerate the layout.
+      if (newLayoutBase) {
+        var newLayout = (0, _utils.synchronizeLayoutWithChildren)(newLayoutBase, nextProps.children, nextProps.cols, nextProps.verticalCompact);
+        var _oldLayout = this.state.layout;
+        this.setState({ layout: newLayout });
+        this.onLayoutMaybeChanged(newLayout, _oldLayout);
+      }
     }
-  };
 
-  /**
-   * Calculates a pixel value for the container.
-   * @return {String} Container height in pixels.
-   */
+    /**
+     * Calculates a pixel value for the container.
+     * @return {String} Container height in pixels.
+     */
+
+  }, {
+    key: 'containerHeight',
+    value: function containerHeight() {
+      if (!this.props.autoSize) return;
+      var nbRow = (0, _utils.bottom)(this.state.layout);
+      var containerPaddingY = this.props.containerPadding ? this.props.containerPadding[1] : this.props.margin[1];
+      return nbRow * this.props.rowHeight + (nbRow - 1) * this.props.margin[1] + containerPaddingY * 2 + 'px';
+    }
+
+    /**
+     * When dragging starts
+     * @param {String} i Id of the child
+     * @param {Number} x X position of the move
+     * @param {Number} y Y position of the move
+     * @param {Event} e The mousedown event
+     * @param {Element} node The current dragging DOM element
+     */
+
+  }, {
+    key: 'onDragStart',
+    value: function onDragStart(i, x, y, _ref) {
+      var e = _ref.e,
+          node = _ref.node;
+      var layout = this.state.layout;
+
+      var l = (0, _utils.getLayoutItem)(layout, i);
+      if (!l) return;
+
+      this.setState({ oldDragItem: (0, _utils.cloneLayoutItem)(l), oldLayout: this.state.layout });
+
+      this.props.onDragStart(layout, l, l, null, e, node);
+    }
+
+    /**
+     * Each drag movement create a new dragelement and move the element to the dragged location
+     * @param {String} i Id of the child
+     * @param {Number} x X position of the move
+     * @param {Number} y Y position of the move
+     * @param {Event} e The mousedown event
+     * @param {Element} node The current dragging DOM element
+     */
+
+  }, {
+    key: 'onDrag',
+    value: function onDrag(i, x, y, _ref2) {
+      var e = _ref2.e,
+          node = _ref2.node;
+      var oldDragItem = this.state.oldDragItem;
+      var layout = this.state.layout;
+
+      var l = (0, _utils.getLayoutItem)(layout, i);
+      if (!l) return;
+
+      // Create placeholder (display only)
+      var placeholder = {
+        w: l.w, h: l.h, x: l.x, y: l.y, placeholder: true, i: i
+      };
+
+      // Move the element to the dragged location.
+      layout = (0, _utils.moveElement)(layout, l, x, y, true /* isUserAction */);
+
+      this.props.onDrag(layout, oldDragItem, l, placeholder, e, node);
+
+      this.setState({
+        layout: (0, _utils.compact)(layout, this.props.verticalCompact),
+        activeDrag: placeholder
+      });
+    }
+
+    /**
+     * When dragging stops, figure out which position the element is closest to and update its x and y.
+     * @param  {String} i Index of the child.
+     * @param {Number} x X position of the move
+     * @param {Number} y Y position of the move
+     * @param {Event} e The mousedown event
+     * @param {Element} node The current dragging DOM element
+     */
+
+  }, {
+    key: 'onDragStop',
+    value: function onDragStop(i, x, y, _ref3) {
+      var e = _ref3.e,
+          node = _ref3.node;
+      var oldDragItem = this.state.oldDragItem;
+      var layout = this.state.layout;
+
+      var l = (0, _utils.getLayoutItem)(layout, i);
+      if (!l) return;
+
+      // Move the element here
+      layout = (0, _utils.moveElement)(layout, l, x, y, true /* isUserAction */);
+
+      this.props.onDragStop(layout, oldDragItem, l, null, e, node);
+
+      // Set state
+      var newLayout = (0, _utils.compact)(layout, this.props.verticalCompact);
+      var oldLayout = this.state.oldLayout;
+
+      this.setState({
+        activeDrag: null,
+        layout: newLayout,
+        oldDragItem: null,
+        oldLayout: null
+      });
+
+      this.onLayoutMaybeChanged(newLayout, oldLayout);
+    }
+  }, {
+    key: 'onLayoutMaybeChanged',
+    value: function onLayoutMaybeChanged(newLayout, oldLayout) {
+      if (!oldLayout) oldLayout = this.state.layout;
+      if (!(0, _lodash2.default)(oldLayout, newLayout)) {
+        this.props.onLayoutChange(newLayout);
+      }
+    }
+  }, {
+    key: 'onResizeStart',
+    value: function onResizeStart(i, w, h, _ref4) {
+      var e = _ref4.e,
+          node = _ref4.node;
+      var layout = this.state.layout;
+
+      var l = (0, _utils.getLayoutItem)(layout, i);
+      if (!l) return;
+
+      this.setState({
+        oldResizeItem: (0, _utils.cloneLayoutItem)(l),
+        oldLayout: this.state.layout
+      });
+
+      this.props.onResizeStart(layout, l, l, null, e, node);
+    }
+  }, {
+    key: 'onResize',
+    value: function onResize(i, w, h, _ref5) {
+      var e = _ref5.e,
+          node = _ref5.node;
+      var _state = this.state,
+          layout = _state.layout,
+          oldResizeItem = _state.oldResizeItem;
+
+      var l = (0, _utils.getLayoutItem)(layout, i);
+      if (!l) return;
+
+      // Set new width and height.
+      l.w = w;
+      l.h = h;
+
+      // Create placeholder element (display only)
+      var placeholder = {
+        w: w, h: h, x: l.x, y: l.y, static: true, i: i
+      };
+
+      this.props.onResize(layout, oldResizeItem, l, placeholder, e, node);
+
+      // Re-compact the layout and set the drag placeholder.
+      this.setState({
+        layout: (0, _utils.compact)(layout, this.props.verticalCompact),
+        activeDrag: placeholder
+      });
+    }
+  }, {
+    key: 'onResizeStop',
+    value: function onResizeStop(i, w, h, _ref6) {
+      var e = _ref6.e,
+          node = _ref6.node;
+      var _state2 = this.state,
+          layout = _state2.layout,
+          oldResizeItem = _state2.oldResizeItem;
+
+      var l = (0, _utils.getLayoutItem)(layout, i);
+
+      this.props.onResizeStop(layout, oldResizeItem, l, null, e, node);
+
+      // Set state
+      var newLayout = (0, _utils.compact)(layout, this.props.verticalCompact);
+      var oldLayout = this.state.oldLayout;
+
+      this.setState({
+        activeDrag: null,
+        layout: newLayout,
+        oldResizeItem: null,
+        oldLayout: null
+      });
+
+      this.onLayoutMaybeChanged(newLayout, oldLayout);
+    }
+
+    /**
+     * Create a placeholder object.
+     * @return {Element} Placeholder div.
+     */
+
+  }, {
+    key: 'placeholder',
+    value: function placeholder() {
+      var activeDrag = this.state.activeDrag;
+
+      if (!activeDrag) return null;
+      var _props = this.props,
+          width = _props.width,
+          cols = _props.cols,
+          margin = _props.margin,
+          containerPadding = _props.containerPadding,
+          rowHeight = _props.rowHeight,
+          maxRows = _props.maxRows,
+          useCSSTransforms = _props.useCSSTransforms;
+
+      // {...this.state.activeDrag} is pretty slow, actually
+
+      return _react2.default.createElement(
+        _GridItem2.default,
+        {
+          w: activeDrag.w,
+          h: activeDrag.h,
+          x: activeDrag.x,
+          y: activeDrag.y,
+          i: activeDrag.i,
+          className: 'react-grid-placeholder',
+          containerWidth: width,
+          cols: cols,
+          margin: margin,
+          containerPadding: containerPadding || margin,
+          maxRows: maxRows,
+          rowHeight: rowHeight,
+          isDraggable: false,
+          isResizable: false,
+          useCSSTransforms: useCSSTransforms },
+        _react2.default.createElement('div', null)
+      );
+    }
+
+    /**
+     * Given a grid item, set its style attributes & surround in a <Draggable>.
+     * @param  {Element} child React element.
+     * @return {Element}       Element wrapped in draggable and properly placed.
+     */
+
+  }, {
+    key: 'processGridItem',
+    value: function processGridItem(child) {
+      if (!child.key) return;
+      var l = (0, _utils.getLayoutItem)(this.state.layout, child.key);
+      if (!l) return null;
+      var _props2 = this.props,
+          width = _props2.width,
+          cols = _props2.cols,
+          margin = _props2.margin,
+          containerPadding = _props2.containerPadding,
+          rowHeight = _props2.rowHeight,
+          maxRows = _props2.maxRows,
+          isDraggable = _props2.isDraggable,
+          isResizable = _props2.isResizable,
+          useCSSTransforms = _props2.useCSSTransforms,
+          draggableCancel = _props2.draggableCancel,
+          draggableHandle = _props2.draggableHandle;
+      var mounted = this.state.mounted;
+
+      // Parse 'static'. Any properties defined directly on the grid item will take precedence.
+
+      var draggable = Boolean(!l.static && isDraggable && (l.isDraggable || l.isDraggable == null));
+      var resizable = Boolean(!l.static && isResizable && (l.isResizable || l.isResizable == null));
+
+      return _react2.default.createElement(
+        _GridItem2.default,
+        {
+          containerWidth: width,
+          cols: cols,
+          margin: margin,
+          containerPadding: containerPadding || margin,
+          maxRows: maxRows,
+          rowHeight: rowHeight,
+          cancel: draggableCancel,
+          handle: draggableHandle,
+          onDragStop: this.onDragStop,
+          onDragStart: this.onDragStart,
+          onDrag: this.onDrag,
+          onResizeStart: this.onResizeStart,
+          onResize: this.onResize,
+          onResizeStop: this.onResizeStop,
+          isDraggable: draggable,
+          isResizable: resizable,
+          useCSSTransforms: useCSSTransforms && mounted,
+          usePercentages: !mounted,
+
+          w: l.w,
+          h: l.h,
+          x: l.x,
+          y: l.y,
+          i: l.i,
+          minH: l.minH,
+          minW: l.minW,
+          maxH: l.maxH,
+          maxW: l.maxW,
+          'static': l.static,
+
+          dragDelay: this.props.getDragDelayForItem(l)
+        },
+        child
+      );
+    }
+  }, {
+    key: 'render',
+    value: function render() {
+      var _this2 = this;
+
+      var _props3 = this.props,
+          className = _props3.className,
+          style = _props3.style;
 
 
-  ReactGridLayout.prototype.containerHeight = function containerHeight() {
-    if (!this.props.autoSize) return;
-    return (0, _utils.bottom)(this.state.layout) * (this.props.rowHeight + this.props.margin[1]) + this.props.margin[1] + 'px';
-  };
+      var mergedClassName = 'react-grid-layout ' + className;
+      var mergedStyle = _extends({
+        height: this.containerHeight()
+      }, style);
 
-  /**
-   * When dragging starts
-   * @param {String} i Id of the child
-   * @param {Number} x X position of the move
-   * @param {Number} y Y position of the move
-   * @param {Event} e The mousedown event
-   * @param {Element} node The current dragging DOM element
-   */
-
-
-  ReactGridLayout.prototype.onDragStart = function onDragStart(i /*:string*/, x /*:number*/, y /*:number*/, _ref) {
-    var e = _ref.e;
-    var node = _ref.node;
-    var layout = this.state.layout;
-
-    var l = (0, _utils.getLayoutItem)(layout, i);
-    if (!l) return;
-
-    this.setState({ oldDragItem: (0, _utils.cloneLayoutItem)(l) });
-
-    this.props.onDragStart(layout, l, l, null, e, node);
-  };
-
-  /**
-   * Each drag movement create a new dragelement and move the element to the dragged location
-   * @param {String} i Id of the child
-   * @param {Number} x X position of the move
-   * @param {Number} y Y position of the move
-   * @param {Event} e The mousedown event
-   * @param {Element} node The current dragging DOM element
-   */
-
-
-  ReactGridLayout.prototype.onDrag = function onDrag(i /*:string*/, x /*:number*/, y /*:number*/, _ref2) {
-    var e = _ref2.e;
-    var node = _ref2.node;
-    var oldDragItem = this.state.oldDragItem;
-    var layout = this.state.layout;
-
-    var l = (0, _utils.getLayoutItem)(layout, i);
-    if (!l) return;
-
-    // Create placeholder (display only)
-    var placeholder = {
-      w: l.w, h: l.h, x: l.x, y: l.y, placeholder: true, i: i
-    };
-
-    // Move the element to the dragged location.
-    layout = (0, _utils.moveElement)(layout, l, x, y, true /* isUserAction */);
-
-    this.props.onDrag(layout, oldDragItem, l, placeholder, e, node);
-
-    this.setState({
-      layout: (0, _utils.compact)(layout, this.props.verticalCompact),
-      activeDrag: placeholder
-    });
-  };
-
-  /**
-   * When dragging stops, figure out which position the element is closest to and update its x and y.
-   * @param  {String} i Index of the child.
-   * @param {Number} x X position of the move
-   * @param {Number} y Y position of the move
-   * @param {Event} e The mousedown event
-   * @param {Element} node The current dragging DOM element
-   */
-
-
-  ReactGridLayout.prototype.onDragStop = function onDragStop(i /*:string*/, x /*:number*/, y /*:number*/, _ref3) {
-    var e = _ref3.e;
-    var node = _ref3.node;
-    var oldDragItem = this.state.oldDragItem;
-    var layout = this.state.layout;
-
-    var l = (0, _utils.getLayoutItem)(layout, i);
-    if (!l) return;
-
-    // Move the element here
-    layout = (0, _utils.moveElement)(layout, l, x, y, true /* isUserAction */);
-
-    this.props.onDragStop(layout, oldDragItem, l, null, e, node);
-
-    // Set state
-    this.setState({
-      activeDrag: null,
-      layout: (0, _utils.compact)(layout, this.props.verticalCompact),
-      oldDragItem: null
-    });
-
-    this.props.onLayoutChange(this.state.layout);
-  };
-
-  ReactGridLayout.prototype.onResizeStart = function onResizeStart(i /*:string*/, w /*:number*/, h /*:number*/, _ref4) {
-    var e = _ref4.e;
-    var node = _ref4.node;
-    var layout = this.state.layout;
-
-    var l = (0, _utils.getLayoutItem)(layout, i);
-    if (!l) return;
-
-    this.setState({ oldResizeItem: (0, _utils.cloneLayoutItem)(l) });
-
-    this.props.onResizeStart(layout, l, l, null, e, node);
-  };
-
-  ReactGridLayout.prototype.onResize = function onResize(i /*:string*/, w /*:number*/, h /*:number*/, _ref5) {
-    var e = _ref5.e;
-    var node = _ref5.node;
-    var _state = this.state;
-    var layout = _state.layout;
-    var oldResizeItem = _state.oldResizeItem;
-
-    var l = (0, _utils.getLayoutItem)(layout, i);
-    if (!l) return;
-
-    // Set new width and height.
-    l.w = w;
-    l.h = h;
-
-    // Create placeholder element (display only)
-    var placeholder = {
-      w: w, h: h, x: l.x, y: l.y, static: true, i: i
-    };
-
-    this.props.onResize(layout, oldResizeItem, l, placeholder, e, node);
-
-    // Re-compact the layout and set the drag placeholder.
-    this.setState({ layout: (0, _utils.compact)(layout, this.props.verticalCompact), activeDrag: placeholder });
-  };
-
-  ReactGridLayout.prototype.onResizeStop = function onResizeStop(i /*:string*/, w /*:number*/, h /*:number*/, _ref6) {
-    var e = _ref6.e;
-    var node = _ref6.node;
-    var _state2 = this.state;
-    var layout = _state2.layout;
-    var oldResizeItem = _state2.oldResizeItem;
-
-    var l = (0, _utils.getLayoutItem)(layout, i);
-
-    this.props.onResizeStop(layout, oldResizeItem, l, null, e, node);
-
-    // Set state
-    this.setState({
-      activeDrag: null,
-      layout: (0, _utils.compact)(layout, this.props.verticalCompact),
-      oldResizeItem: null
-    });
-
-    this.props.onLayoutChange(this.state.layout);
-  };
-
-  /**
-   * Create a placeholder object.
-   * @return {Element} Placeholder div.
-   */
-
-
-  ReactGridLayout.prototype.placeholder = function placeholder() {
-    var activeDrag = this.state.activeDrag;
-
-    if (!activeDrag) return null;
-    var _props = this.props;
-    var width = _props.width;
-    var cols = _props.cols;
-    var margin = _props.margin;
-    var rowHeight = _props.rowHeight;
-    var maxRows = _props.maxRows;
-    var useCSSTransforms = _props.useCSSTransforms;
-
-    // {...this.state.activeDrag} is pretty slow, actually
-
-    return _react2.default.createElement(
-      _GridItem2.default,
-      {
-        w: activeDrag.w,
-        h: activeDrag.h,
-        x: activeDrag.x,
-        y: activeDrag.y,
-        i: activeDrag.i,
-        className: 'react-grid-placeholder',
-        containerWidth: width,
-        cols: cols,
-        margin: margin,
-        maxRows: maxRows,
-        rowHeight: rowHeight,
-        isDraggable: false,
-        isResizable: false,
-        useCSSTransforms: useCSSTransforms },
-      _react2.default.createElement('div', null)
-    );
-  };
-
-  /**
-   * Given a grid item, set its style attributes & surround in a <Draggable>.
-   * @param  {Element} child React element.
-   * @return {Element}       Element wrapped in draggable and properly placed.
-   */
-
-
-  ReactGridLayout.prototype.processGridItem = function processGridItem(child /*: React.Element*/) {
-    if (!child.key) return;
-    var l = (0, _utils.getLayoutItem)(this.state.layout, child.key);
-    if (!l) return null;
-    var _props2 = this.props;
-    var width = _props2.width;
-    var cols = _props2.cols;
-    var margin = _props2.margin;
-    var rowHeight = _props2.rowHeight;
-    var maxRows = _props2.maxRows;
-    var isDraggable = _props2.isDraggable;
-    var isResizable = _props2.isResizable;
-    var useCSSTransforms = _props2.useCSSTransforms;
-    var draggableCancel = _props2.draggableCancel;
-    var draggableHandle = _props2.draggableHandle;
-
-    // Parse 'static'. Any properties defined directly on the grid item will take precedence.
-
-    var draggable = Boolean(!l.static && isDraggable && (l.isDraggable || l.isDraggable == null));
-    var resizable = Boolean(!l.static && isResizable && (l.isResizable || l.isResizable == null));
-    // $FlowIgnore
-    var isBrowser = process.browser;
-
-    return _react2.default.createElement(
-      _GridItem2.default,
-      {
-        containerWidth: width,
-        cols: cols,
-        margin: margin,
-        maxRows: maxRows,
-        rowHeight: rowHeight,
-        cancel: draggableCancel,
-        handle: draggableHandle,
-        onDragStop: this.onDragStop,
-        onDragStart: this.onDragStart,
-        onDrag: this.onDrag,
-        onResizeStart: this.onResizeStart,
-        onResize: this.onResize,
-        onResizeStop: this.onResizeStop,
-        isDraggable: draggable,
-        isResizable: resizable,
-        useCSSTransforms: useCSSTransforms && isBrowser,
-        usePercentages: !isBrowser,
-
-        w: l.w,
-        h: l.h,
-        x: l.x,
-        y: l.y,
-        i: l.i,
-        minH: l.minH,
-        minW: l.minW,
-        maxH: l.maxH,
-        maxW: l.maxW,
-        'static': l.static,
-
-        dragDelay: this.props.getDragDelayForItem(l)
-      },
-      child
-    );
-  };
-
-  ReactGridLayout.prototype.render = function render() {
-    var _this2 = this;
-
-    var _props3 = this.props;
-    var className = _props3.className;
-    var style = _props3.style;
-
-
-    var mergedClassName = 'react-grid-layout ' + className;
-    var mergedStyle = _extends({
-      height: this.containerHeight()
-    }, style);
-
-    return _react2.default.createElement(
-      'div',
-      { className: mergedClassName, style: mergedStyle },
-      _react2.default.Children.map(this.props.children, function (child) {
-        return _this2.processGridItem(child);
-      }),
-      this.placeholder()
-    );
-  };
+      return _react2.default.createElement(
+        'div',
+        { className: mergedClassName, style: mergedStyle },
+        _react2.default.Children.map(this.props.children, function (child) {
+          return _this2.processGridItem(child);
+        }),
+        this.placeholder()
+      );
+    }
+  }]);
 
   return ReactGridLayout;
 }(_react2.default.Component);
@@ -413,7 +453,7 @@ ReactGridLayout.propTypes = {
   // {x: Number, y: Number, w: Number, h: Number, i: String}
   layout: function layout(props) {
     var layout = props.layout;
-    // I hope you're setting the _grid property on the grid items
+    // I hope you're setting the data-grid property on the grid items
     if (layout === undefined) return;
     (0, _utils.validateLayout)(layout, 'layout');
   },
@@ -424,6 +464,8 @@ ReactGridLayout.propTypes = {
 
   // Margin between items [x, y] in px
   margin: _react.PropTypes.arrayOf(_react.PropTypes.number),
+  // Padding inside the container [x, y] in px
+  containerPadding: _react.PropTypes.arrayOf(_react.PropTypes.number),
   // Rows have a static height, but you can change this based on breakpoints if you like
   rowHeight: _react.PropTypes.number,
   // Default Infinity, but you can specify a max here if you like.
@@ -471,7 +513,6 @@ ReactGridLayout.propTypes = {
 
   // Children must not have duplicate keys.
   children: function children(props, propName, _componentName) {
-    _react.PropTypes.node.apply(this, arguments);
     var children = props[propName];
 
     // Check children keys for duplicates. Throw if found.
@@ -487,6 +528,7 @@ ReactGridLayout.propTypes = {
 ReactGridLayout.defaultProps = {
   autoSize: true,
   cols: 12,
+  className: '',
   rowHeight: 150,
   maxRows: Infinity, // infinite vertical growth
   layout: [],
@@ -511,7 +553,9 @@ var _initialiseProps = function _initialiseProps() {
   this.state = {
     activeDrag: null,
     layout: (0, _utils.synchronizeLayoutWithChildren)(this.props.layout, this.props.children, this.props.cols, this.props.verticalCompact),
+    mounted: false,
     oldDragItem: null,
+    oldLayout: null,
     oldResizeItem: null
   };
 };
