@@ -384,19 +384,9 @@ var GridItem = function (_React$Component) {
             }
             newPosition.left = _this2.state.dragging.left;
             newPosition.top = _this2.state.dragging.top;
-            var _state = _this2.state,
-                _dragStarted = _state.dragStarted,
-                _timeout = _state.timeout;
+            var _timeout = _this2.state.timeout;
 
             _this2.setState({ dragging: null, timeout: null, dragStarted: false, totalDelta: null });
-            if (_dragStarted === false) {
-              (function () {
-                var node = _reactDom2.default.findDOMNode(_this2);
-                setTimeout(function () {
-                  return node.click();
-                }, 1);
-              })();
-            }
             if (_timeout !== null) {
               clearTimeout(_timeout);
             }

@@ -370,12 +370,8 @@ export default class GridItem extends React.Component {
           }
           newPosition.left = this.state.dragging.left;
           newPosition.top = this.state.dragging.top;
-          const { dragStarted, timeout } = this.state;
+          const { timeout } = this.state;
           this.setState({dragging: null, timeout: null, dragStarted: false, totalDelta: null});
-          if (dragStarted === false) {
-            const node = ReactDOM.findDOMNode(this);
-            setTimeout(() => node.click(), 1);
-          }
           if (timeout !== null) {
             clearTimeout(timeout);
           }
